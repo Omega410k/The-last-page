@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>The Last Page – Pixel Background</title>
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #000423;
+}
+canvas {
+    display: block;
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+const bgColor = "#000423";
+
+const pointColors = ["#ffffff", "#7aa2ff"];
+const bigStarColors = [
+    "#ff4b4b", "#4b6bff", "#ffd84b", "#b44bff",
+    "#ff944b", "#4bff9a", "#ff4bd8", "#4bfff6"
+];
+
+let points = [];
+let bigStars = [];
+
+function spawnPoint() {
+    const size = Math.random() < 0.7 ? 1 : 2;
+    points.push({
+        x: Math.floor(Math.random() * canvas.width),
+        y: Math.floor(Math.random() * canvas.height),
+        size,
+        life: 0,
+        maxLife: Math.random() * 400 + 400,
+        color: pointColors[Math.random() < 0.5 ? 0 : 1]
+    });
+}
+
+function spawnBigStar() {
+    bigStars.push({
+        x: Math.floor(Math.random() * canvas.width),
+        y: Math.floor(Math.random() * canvas.height),
+        size: Math.floor(Math.random() * 10 + 15),
+        life: 0,
+        maxLife: Math.random() * 30 + 80,
+        color: bigStarColors[Math.floor(Math.random() * bigStarColors.length)]
+    });
+}
+
+function drawPixelStar(x, y, size, alpha, color) {
+
+  // ---------- PERFIL BASE (tu ASCII) ----------
+  const profile = [
+    1, 3, 3, 5, 7, 11, 13,
+    11, 7, 5, 3, 3, 1
+  ];
+
+  const scale = Math.max(1, Math.floor(size / 2));
+  const half = Math.floor(profile.length / 2);
+
+  // ---------- HALO ----------
+  ctx.fillStyle = color;
+  ctx.globalAlpha = alpha * 0.22;
+
+  for (let i = 0; i < profile.length; i++) {
+    const w = Math.floor((profile[i] + 6) * scale / 6);
+    if (w <= 0) continue;
+
+    ctx.fillRect(
+      x - Math.floor(w / 2),
+      y + i - half,
+      w,
+      1
+    );
+  }
+
+  // ---------- CUERPO ----------
+  ctx.globalAlpha = alpha;
+
+  for (let i = 0; i < profile.length; i++) {
+    const w = Math.floor(profile[i] * scale / 6);
+    if (w <= 0) continue;
+
+    ctx.fillRect(
+      x - Math.floor(w / 2),
+      y + i - half,
+      w,
+      1
+    );
+  }
+
+  // ---------- NÚCLEO BRILLANTE ----------
+  ctx.fillStyle = "#ffffff";
+  ctx.globalAlpha = alpha;
+  ctx.fillRect(x - 1, y - 1, 2, 2);
+}
+
+function update() {
+    ctx.fillStyle = bgColor;
+    ctx.globalAlpha = 1;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Muchísimos puntos, pocas estrellas grandes
+    if (Math.random() < 0.95) spawnPoint();
+    if (Math.random() < 0.40) spawnBigStar(); // cambiar para hacer que aparezcan aun mas
+
+    points = points.filter(p => p.life < p.maxLife);
+    bigStars = bigStars.filter(s => s.life < s.maxLife);
+
+    points.forEach(p => {
+        p.life++;
+        const alpha = p.life < 10
+            ? p.life / 10
+            : 1 - p.life / p.maxLife;
+
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+    });
+
+    bigStars.forEach(s => {
+        s.life++;
+        const alpha = s.life < 12
+            ? s.life / 12
+            : 1 - s.life / s.maxLife;
+
+        const scale = 1 - s.life / s.maxLife;
+        drawPixelStar(
+            s.x,
+            s.y,
+            Math.max(1, Math.floor(s.size * scale)),
+            alpha,
+            s.color
+        );
+    });
+
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(update);
+}
+
+update();
+</script>
+</body>
+</html>
